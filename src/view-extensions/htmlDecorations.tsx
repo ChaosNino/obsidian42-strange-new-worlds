@@ -135,7 +135,6 @@ export function htmlDecorationForReferencesElement(
 	tippyObject.popper.classList.add("snw-tippy");
 
 	return refenceElement;
-}
 
 //  Opens the sidebar SNW pane by calling activateView on main.ts
 export const processHtmlDecorationReferenceEvent = async (target: HTMLElement) => {
