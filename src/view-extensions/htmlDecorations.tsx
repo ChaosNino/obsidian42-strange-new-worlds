@@ -53,88 +53,45 @@ export function htmlDecorationForReferencesElement(
 	render(referenceElementJsx, refenceElement);
 	const refCountBox = refenceElement.firstElementChild as HTMLElement;
 
-              // 判断是否应该绑定点击事件（打开侧边栏）
-              // 条件：是桌面端，或者（是移动端 且 设置为侧边栏模式）
-              if (Platform.isDesktop || Platform.isDesktopApp || (Platform.isMobile && plugin.settings.mobileClickAction === "sidebar")) {
-                  refCountBox.onclick = async (e: MouseEvent) => processHtmlDecorationReferenceEvent(e.target as HTMLElement);
-              }
-          
-              // 判断是否应该启用 Tippy 悬浮窗
-              // 条件：不是移动端（桌面端总是启用），或者（是移动端 且 设置为悬浮窗模式）
-              // 如果移动端选择了侧边栏模式，则不初始化 Tippy，避免冲突
-              if (!Platform.isMobile || (Platform.isMobile && plugin.settings.mobileClickAction === "popover")) {
-                  const requireModifierKey = plugin.settings.requireModifierKeyToActivateSNWView;
-                  // defaults to showing tippy on hover, but if requireModifierKey is true, then only show on ctrl/meta key
-                  let showTippy = true;
-                  const tippyObject = tippy(refCountBox, {
-                      interactive: true,
-                      appendTo: () => document.body,
-                      allowHTML: true,
-                      zIndex: 9999,
-                      placement: "auto-end",
-                      // trigger: "click", // on click is another option instead of hovering at all
-                      onTrigger(instance, event) {
-                          const mouseEvent = event as MouseEvent;
-                          if (requireModifierKey === false) return;
-                          if (mouseEvent.ctrlKey || mouseEvent.metaKey) {
-                              showTippy = true;
-                          } else {
-                              showTippy = false;
-                          }
-                      },
-                      onShow(instance) {
-                          // returning false will cancel the show (coming from onTrigger)
-                          if (!showTippy) return false;
-          
-                          setTimeout(async () => {
-                              await getUIC_Hoverview(instance);
-                          }, 1);
-                      },
-                  });
-          
-                  tippyObject.popper.classList.add("snw-tippy");
-              }
-          
-              // --- 修改结束 ---
-              
-                  return refenceElement;
-              }
-	if (Platform.isDesktop || Platform.isDesktopApp)
-		//click is default to desktop, otherwise mobile behaves differently
+	// 1. 处理点击事件 (桌面端 或 移动端设置为侧边栏模式)
+	if (Platform.isDesktop || Platform.isDesktopApp || (Platform.isMobile && plugin.settings.mobileClickAction === "sidebar")) {
 		refCountBox.onclick = async (e: MouseEvent) => processHtmlDecorationReferenceEvent(e.target as HTMLElement);
+	}
 
-	const requireModifierKey = plugin.settings.requireModifierKeyToActivateSNWView;
-	// defaults to showing tippy on hover, but if requireModifierKey is true, then only show on ctrl/meta key
-	let showTippy = true;
-	const tippyObject = tippy(refCountBox, {
-		interactive: true,
-		appendTo: () => document.body,
-		allowHTML: true,
-		zIndex: 9999,
-		placement: "auto-end",
-		// trigger: "click", // on click is another option instead of hovering at all
-		onTrigger(instance, event) {
-			const mouseEvent = event as MouseEvent;
-			if (requireModifierKey === false) return;
-			if (mouseEvent.ctrlKey || mouseEvent.metaKey) {
-				showTippy = true;
-			} else {
-				showTippy = false;
-			}
-		},
-		onShow(instance) {
-			// returning false will cancel the show (coming from onTrigger)
-			if (!showTippy) return false;
+	// 2. 处理 Tippy 悬浮窗 (非移动端 或 移动端设置为悬浮窗模式)
+	if (!Platform.isMobile || (Platform.isMobile && plugin.settings.mobileClickAction === "popover")) {
+		const requireModifierKey = plugin.settings.requireModifierKeyToActivateSNWView;
+		let showTippy = true;
 
-			setTimeout(async () => {
-				await getUIC_Hoverview(instance);
-			}, 1);
-		},
-	});
+		const tippyObject = tippy(refCountBox, {
+			interactive: true,
+			appendTo: () => document.body,
+			allowHTML: true,
+			zIndex: 9999,
+			placement: "auto-end",
+			// trigger: "click",
+			onTrigger(instance, event) {
+				const mouseEvent = event as MouseEvent;
+				if (requireModifierKey === false) return;
+				if (mouseEvent.ctrlKey || mouseEvent.metaKey) {
+					showTippy = true;
+				} else {
+					showTippy = false;
+				}
+			},
+			onShow(instance) {
+				if (!showTippy) return false;
+				setTimeout(async () => {
+					await getUIC_Hoverview(instance);
+				}, 1);
+			},
+		});
 
-	tippyObject.popper.classList.add("snw-tippy");
+		tippyObject.popper.classList.add("snw-tippy");
+	}
 
 	return refenceElement;
+}
 
 //  Opens the sidebar SNW pane by calling activateView on main.ts
 export const processHtmlDecorationReferenceEvent = async (target: HTMLElement) => {
