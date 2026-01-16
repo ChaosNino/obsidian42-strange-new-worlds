@@ -29,6 +29,7 @@ export interface Settings {
 	sortOptionDefault: SortOption;
 	displayCustomPropertyList: string; //list of custom properties to display when showing references
 	pluginSupportKanban: boolean;
+  mobileClickAction: "popover" | "sidebar";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -58,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	sortOptionDefault: "name-asc",
 	displayCustomPropertyList: "",
 	pluginSupportKanban: false,
+  mobileClickAction: "sidebar",
 };
 
 export function isEnabledForMode(settings: Settings, sourceMode: boolean): boolean {
