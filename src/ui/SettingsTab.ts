@@ -108,6 +108,22 @@ export class SettingsTab extends PluginSettingTab {
 				});
 			});
 
+    new Setting(containerEl).setHeading().setName("Mobile Interaction"); // 或者放在 View Modes 下
+
+    new Setting(containerEl)
+        .setName("Mobile click action")
+        .setDesc("Choose the behavior when tapping the reference count on mobile devices.")
+        .addDropdown((dropdown) => {
+            dropdown
+               .addOption("popover", "Floating Window (Default)")
+               .addOption("sidebar", "Side Panel")
+               .setValue(this.plugin.settings.mobileClickAction)
+               .onChange(async (value) => {
+                   this.plugin.settings.mobileClickAction = value as "popover" | "sidebar";
+                   await this.plugin.saveSettings();
+               });
+        });
+    
 		new Setting(containerEl).setHeading().setName("Properties");
 
 		new Setting(containerEl).setName("Show references in properties on Desktop").addToggle((cb: ToggleComponent) => {
