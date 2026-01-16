@@ -9,8 +9,15 @@ div:has(> .snw-reference),
   display: inline;
 }
 
+/* ==========================================================
+   SNW 角标样式分层处理
+   目标：正文保留原作者样式，面板使用修复版样式
+   ========================================================== */
+
+/* 1. 全局默认样式（应用原作者的原始代码） */
+/* 适用于：正文阅读视图、实时预览 */
 .snw-reference {
-  display: inline;
+  display: inline; /* 关键：原作者使用 inline，自适应宽度，不会变长条 */
   font-size: var(--font-ui-smaller);
   border-radius: var(--radius-s);
   border: var(--border-width) dotted;
@@ -21,6 +28,67 @@ div:has(> .snw-reference),
   padding-right: 3px !important;
   margin-left: 3px !important;
   margin-right: 2px;
+}
+
+/* 2. 面板专用样式（应用我们的修复补丁） */
+/* 适用于：悬浮窗 (Popover) 和 侧边栏 (Sidepane) */
+.snw-popover-container .snw-reference,
+.snw-sidepane-container .snw-reference {
+  display: inline-block !important;
+  
+  /* --- 1. 大小调整区 --- */
+  /* 默认是 inherit (继承)，改成 0.6em 或 10px 即可变小 */
+  font-size: 0.8em !important; 
+
+  /* --- 2. 位置调整区 (靠上一些) --- */
+  vertical-align: middle !important; /* 保持这个基准，防止撑开列表行距 */
+  position: relative !important;     /* 开启相对定位，允许微调 */
+  top: -2px !important;              /* 关键：负数向上移，正数向下移。如果不满意，改这个数字！ */
+
+  /* --- 3. 盒子形状 --- */
+  min-width: 1.2em !important;
+  height: 1.4em !important;
+  
+  /* --- 4. 数字在盒子内居中 --- */
+  text-align: center !important;
+  line-height: 1.2em !important;     /* 稍微小于 height，视觉上更居中 */
+  
+  /* --- 5. 其他防干扰设置 --- */
+  text-indent: 0 !important;
+  white-space: nowrap !important;
+  padding: 0 !important;
+  margin: 0 2px !important;
+}
+
+/* ==========================================================
+   SNW 终极补丁：修复悬浮窗列表间距 & 链接颜色
+   (请保留文件末尾的这段代码，如果之前没加，请补上)
+   ========================================================== */
+
+.snw-popover-container ul, .snw-popover-container ol,
+.snw-sidepane-container ul, .snw-sidepane-container ol {
+  margin-block: 0.25em !important;
+  padding-inline-start: 1.2em !important;
+}
+
+.snw-popover-container li,
+.snw-sidepane-container li {
+  margin-block: 0 !important;
+  padding-block: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* 修复链接颜色 */
+.snw-popover-container a,
+.snw-sidepane-container a {
+  color: var(--link-color) !important;
+  text-decoration: var(--link-decoration) !important;
+}
+
+.snw-popover-container a:hover,
+.snw-sidepane-container a:hover {
+  color: var(--link-color-hover) !important;
+  text-decoration: var(--link-decoration-hover) !important;
 }
 
 .is-mobile .snw-reference {
@@ -347,4 +415,72 @@ div:has(> .snw-reference),
   .snw-reference {
     display: none;
   }
+}
+
+/* ==========================================================
+   SNW 字体大小修复补丁
+   同时修复悬浮窗 (.snw-popover-container) 和侧边栏 (.snw-sidepane-container)
+   ========================================================== */
+
+.snw-popover-container,
+.snw-sidepane-container {
+  /* 1. 核心修复：重置 Obsidian 用于正文渲染的全局变量 */
+  /* 让所有子元素（包括 Callout）计算大小时，都基于这个较小的变量 */
+  --font-text-size: var(--font-ui-smaller) !important;
+  
+  /* 2. 可选：缩小段落间距，使其在小窗口看起来更紧凑 */
+  --p-spacing: 0.5em !important;
+}
+
+/* 3. 强制覆盖所有 Markdown 渲染内容的字体大小 */
+/* 包括：引用块、Callout、列表、段落、标题 */
+.snw-popover-container .markdown-rendered *,
+.snw-sidepane-container .markdown-rendered *,
+.snw-popover-container .callout,
+.snw-sidepane-container .callout {
+  font-size: var(--font-ui-smaller) !important;
+  line-height: 1.4 !important; /* 防止行高过大 */
+}
+
+/* 4. 特殊处理：修复 Callout 内部的边距，防止在大纲视图中太占地方 */
+.snw-popover-container .callout,
+.snw-sidepane-container .callout {
+  margin: 4px 0 !important;
+  padding: 8px !important;
+}
+
+/* 5. 确保侧边栏的标题也是小字体 */
+.snw-sidepane-container .snw-ref-item-file-label {
+  font-size: var(--font-ui-smaller) !important;
+}
+
+/* ==========================================================
+   SNW 终极补丁：修复悬浮窗列表间距 & 链接颜色
+   ========================================================== */
+
+/* 1. 修复悬浮窗/侧边栏中的列表间距过大问题 */
+.snw-popover-container ul, .snw-popover-container ol,
+.snw-sidepane-container ul, .snw-sidepane-container ol {
+  margin-block: 0.25em !important;
+  padding-inline-start: 1.2em !important;
+}
+
+.snw-popover-container li,
+.snw-sidepane-container li {
+  margin-block: 0 !important;
+  padding-block: 0 !important;
+  line-height: 1.4 !important; /* 紧凑行高 */
+}
+
+/* 2. 修复悬浮窗中链接颜色不跟随主题的问题 */
+.snw-popover-container a,
+.snw-sidepane-container a {
+  color: var(--link-color) !important;
+  text-decoration: var(--link-decoration) !important;
+}
+
+.snw-popover-container a:hover,
+.snw-sidepane-container a:hover {
+  color: var(--link-color-hover) !important;
+  text-decoration: var(--link-decoration-hover) !important;
 }
