@@ -16,24 +16,18 @@ export function setPluginVariableForMarkdownPreviewProcessor(snwPlugin: SNWPlugi
 }
 
 /**
- * Function called by main.registerMarkdownPostProcessor - this function renders the html when in preview mode
- * This function receives a section of the document for processsing. So this function is called many times for a document.
+ * Function called by main.registerMarkdownPostProcessor
  */
 export default function markdownPreviewProcessor(el: HTMLElement, ctx: MarkdownPostProcessorContext) {
 	// @ts-ignore
-	if (ctx.remainingNestLevel === 4) return; // This is an attempt to prevent processing of embed files
-
-	if (el.hasAttribute("uic")) return; // this is a custom component, don't render SNW inside it.
-
-	// The following line addresses a conflict with the popular Tasks plugin.
+	if (ctx.remainingNestLevel === 4) return;
+	if (el.hasAttribute("uic")) return;
 	if (el.querySelectorAll(".contains-task-list").length > 0) return;
 
 	const currentFile = plugin.app.vault.fileMap[ctx.sourcePath];
 	if (currentFile === undefined) {
-		//this is run if the processor is not run within a markdown file, rather a card on a canvas
 		ctx.addChild(new snwChildComponentMardkownWithoutFile(el));
 	} else {
-		//this is run if the processor is run within a markdown file
 		if (plugin.settings.pluginSupportKanban === false) {
 			const fileCache = plugin.app.metadataCache.getFileCache(currentFile);
 			if (fileCache?.frontmatter?.["kanban-plugin"]) return;
@@ -42,7 +36,6 @@ export default function markdownPreviewProcessor(el: HTMLElement, ctx: MarkdownP
 	}
 }
 
-// Processes pure markdown not coming from a document, like a card on a canvas that is not based on a file
 class snwChildComponentMardkownWithoutFile extends MarkdownRenderChild {
 	containerEl: HTMLElement;
 
@@ -78,7 +71,6 @@ class snwChildComponentMardkownWithoutFile extends MarkdownRenderChild {
 	}
 }
 
-// Processes markdown coming from a markdown file
 class snwChildComponentForMarkdownFile extends MarkdownRenderChild {
 	containerEl: HTMLElement;
 	sectionInfo: MarkdownSectionInformation | null;
@@ -115,34 +107,45 @@ class snwChildComponentForMarkdownFile extends MarkdownRenderChild {
 							"snw-liveupdate",
 							value.pos.start.line,
 						);
-						let blockElement: HTMLElement | null = this.containerEl.querySelector("p");
+
+						// --- 修改开始：更精确的元素查找逻辑 ---
 						const valueLineInSection: number = value.pos.start.line - this.sectionInfo.lineStart;
+
+						// 1. 优先尝试通过 data-line 查找精确的行元素 (p, li, div 等)
+						let blockElement: HTMLElement | null = this.containerEl.querySelector(`[data-line="${valueLineInSection}"]`);
+
+						// 2. 如果没找到，回退到查找段落 (旧逻辑)
 						if (!blockElement) {
-							blockElement = this.containerEl.querySelector(`li[data-line="${valueLineInSection}"]`);
-							if (!blockElement) continue;
-							const ulElement = blockElement.querySelector("ul");
-							if (ulElement) ulElement.before(referenceElement);
-							else blockElement.append(referenceElement);
-						} else {
-							// if (!blockElement) {
-							// 	blockElement = this.containerEl.querySelector(`ol[data-line="${valueLineInSection}"]`);
-							// 	blockElement.append(referenceElement);
-							// } else {
-							blockElement.append(referenceElement);
-							// }
+							blockElement = this.containerEl.querySelector("p");
 						}
-						if (blockElement && !blockElement.hasClass("snw-block-preview")) referenceElement.addClass("snw-block-preview");
+
+						// 3. 执行插入
+						if (blockElement) {
+							// 检查是否是列表项内的容器
+							const ulElement = blockElement.querySelector("ul");
+							if (ulElement) {
+								ulElement.before(referenceElement);
+							} else {
+								// 使用新的安全插入函数
+								injectRefRespectingColon(blockElement, referenceElement);
+							}
+
+							if (!blockElement.hasClass("snw-block-preview")) {
+								// 注意：不要给 blockElement 加 flex 类，否则会导致整行变成 flex 布局
+								// 我们只标记它，样式处理交给 CSS
+								// referenceElement.addClass("snw-block-preview"); // 原逻辑似乎是给 ref 加类
+							}
+							referenceElement.addClass("snw-block-preview");
+						}
+						// --- 修改结束 ---
 					}
 				}
 			}
 
 			if (plugin.settings.enableRenderingEmbedsInMarkdown && transformedCache?.embeds) {
-				// biome-ignore lint/complexity/noForEach: <explanation>
 				this.containerEl.querySelectorAll(".internal-embed:not(.snw-embed-preview)").forEach((element) => {
 					const src = element.getAttribute("src");
 					if (!src) return;
-
-					// Testing for normal links, links within same page starting with # and for ghost links
 					const embedKey =
 						parseLinkTextToFullPath(
 							src[0] === "#" ? this.currentFile.path.slice(0, -(this.currentFile.extension.length + 1)) + src : src,
@@ -168,11 +171,9 @@ class snwChildComponentForMarkdownFile extends MarkdownRenderChild {
 			}
 
 			if (plugin.settings.enableRenderingLinksInMarkdown && transformedCache?.links) {
-				// biome-ignore lint/complexity/noForEach: <explanation>
 				this.containerEl.querySelectorAll("a.internal-link").forEach((element) => {
 					const dataHref = element.getAttribute("data-href");
 					if (!dataHref) return;
-					// Testing for normal links, links within same page starting with # and for ghost links
 					const link =
 						parseLinkTextToFullPath(
 							dataHref[0] === "#" ? this.currentFile.path.slice(0, -(this.currentFile.extension.length + 1)) + dataHref : dataHref,
@@ -227,5 +228,43 @@ class snwChildComponentForMarkdownFile extends MarkdownRenderChild {
 				}
 			}
 		}
-	} // end of processMarkdown()
+	}
+}
+
+/**
+ * 辅助函数：安全地将角标插入到冒号之前
+ * 使用 splitText 避免直接修改 textContent 导致的内容丢失风险
+ */
+function injectRefRespectingColon(container: HTMLElement, refEl: HTMLElement) {
+    if (!container) return;
+
+    // 1. 获取容器的最后一个子节点
+    let lastNode = container.lastChild;
+
+    // 2. 向前跳过空文本节点或换行符
+    while (lastNode && (lastNode.nodeType !== Node.TEXT_NODE || !lastNode.textContent?.trim())) {
+        lastNode = lastNode.previousSibling;
+    }
+
+    // 3. 如果找到了文本节点
+    if (lastNode && lastNode.nodeType === Node.TEXT_NODE) {
+        const text = lastNode.textContent!;
+        // 匹配结尾的冒号（兼容中英文），忽略末尾空格
+        const match = text.match(/([：:])(\s*)$/);
+
+        if (match) {
+            const splitIndex = match.index!;
+            // 关键步骤：在冒号位置将文本节点一分为二
+            // node1 保留冒号前的内容
+            // node2 (colonNode) 包含冒号及之后的空格
+            const colonNode = (lastNode as Text).splitText(splitIndex);
+
+            // 将角标插入到 colonNode (冒号) 之前
+            container.insertBefore(refEl, colonNode);
+            return;
+        }
+    }
+
+    // 4. 默认兜底：直接追加到末尾
+    container.appendChild(refEl);
 }
