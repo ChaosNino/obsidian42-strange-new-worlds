@@ -46,7 +46,7 @@ div:has(> .snw-reference),
   top: -2px !important;              /* 关键：负数向上移，正数向下移。如果不满意，改这个数字！ */
 
   /* --- 3. 盒子形状 --- */
-  min-width: 1.2em !important;
+  min-width: 1.4em !important;
   height: 1.4em !important;
   
   /* --- 4. 数字在盒子内居中 --- */
@@ -483,4 +483,35 @@ div:has(> .snw-reference),
 .snw-sidepane-container a:hover {
   color: var(--link-color-hover) !important;
   text-decoration: var(--link-decoration-hover) !important;
+}
+
+/* ==========================================================
+   SNW 颜色修复：区分“原文高亮”与“搜索命中”
+   ========================================================== */
+
+/* 1. 恢复原笔记的高亮颜色 (==高亮==) */
+/* 强制使用当前主题定义的默认高亮背景色 */
+.snw-popover-container mark,
+.snw-sidepane-container mark {
+  background-color: var(--text-highlight-bg) !important;
+  color: var(--text-normal) !important;
+}
+
+/* 2. 自定义 SNW 命中关键词的颜色 */
+/* 将搜索结果的匹配文字改为指定的 #ebcb8b (淡黄色) */
+.snw-popover-container .search-result-file-matched-text,
+.snw-sidepane-container .search-result-file-matched-text {
+  background-color: #ebcb8b !important;
+  color: var(--text-normal) !important; /* 保持文字颜色清晰 */
+  
+  /* 可选：如果你希望命中词不要也是 mark 标签的样式，可以重置它 */
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* 3. 修复潜在的冲突：如果命中词本身就在高亮内 */
+/* 确保命中词的颜色覆盖高亮颜色，或者反之（通常命中词优先级更高） */
+.snw-popover-container mark .search-result-file-matched-text,
+.snw-sidepane-container mark .search-result-file-matched-text {
+  background-color: #ebcb8b !important;
 }
