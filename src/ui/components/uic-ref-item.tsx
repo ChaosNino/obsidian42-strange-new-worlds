@@ -72,6 +72,13 @@ const grabChunkOfFile = async (ref: Link): Promise<HTMLElement> => {
 		);
 	}
 
+    const footnotes = contextBuilder.getFootnotes();
+        let footnoteAppendix = "";
+        if (footnotes.length > 0) {
+            // 把所有脚注定义提取出来，拼成一个字符串
+            footnoteAppendix = "\n\n" + footnotes.map(f => getTextAtPosition(fileContents, f.position)).join("\n");
+        }
+
 	const indexOfListItemContainingLink = contextBuilder.getListItemIndexContaining(linkPosition);
 	const isLinkInListItem = indexOfListItemContainingLink >= 0;
 
@@ -98,7 +105,7 @@ const grabChunkOfFile = async (ref: Link): Promise<HTMLElement> => {
 		const contextEl = container.createDiv();
 		await MarkdownRenderer.render(
 			plugin.app,
-			formatListWithDescendants(fileContents, listItemWithDescendants),
+			formatListWithDescendants(fileContents, listItemWithDescendants) + footnoteAppendix,
 			contextEl,
 			ref.sourceFile.path,
 			plugin,
@@ -113,7 +120,7 @@ const grabChunkOfFile = async (ref: Link): Promise<HTMLElement> => {
 		const regex = /^\[\^([\w]+)\]:(.*)$/;
 		if (regex.test(blockContents)) blockContents = blockContents.replace("[", "").replace("]:", "");
 
-		await MarkdownRenderer.render(plugin.app, blockContents, container, ref.sourceFile.path, plugin);
+		await MarkdownRenderer.render(plugin.app, blockContents + footnoteAppendix, container, ref.sourceFile.path, plugin);
 	}
 
 	const headingThatContainsLink = contextBuilder.getHeadingContaining(linkPosition);
