@@ -1,18 +1,22 @@
-import type { CachedMetadata, HeadingCache, ListItemCache, Pos, SectionCache } from "obsidian";
+// 1. 在 import 中添加 FootnoteCache
+import type { CachedMetadata, HeadingCache, ListItemCache, Pos, SectionCache, FootnoteCache } from "obsidian";
 import { doesPositionIncludeAnother } from "./position-utils";
 
 export class ContextBuilder {
 	private readonly listItems: ListItemCache[];
 	private readonly headings: HeadingCache[];
 	private readonly sections: SectionCache[];
+	private readonly footnotes: FootnoteCache[]; // 2. 新增字段
 
 	constructor(
 		private readonly fileContents: string,
-		{ listItems = [], headings = [], sections = [] }: CachedMetadata,
+		// 3. 在解构参数中添加 footnotes
+		{ listItems = [], headings = [], sections = [], footnotes = [] }: CachedMetadata,
 	) {
 		this.listItems = listItems;
 		this.headings = headings;
 		this.sections = sections;
+		this.footnotes = footnotes; // 4. 赋值
 	}
 
 	getListItemIndexContaining = (searchedForPosition: Pos) => {
@@ -90,6 +94,10 @@ export class ContextBuilder {
 		if (this.headings.length === 0) {
 			return headingBreadcrumbs;
 		}
+
+   getFootnotes = () => {
+   		return this.footnotes;
+   	};
 
 		const collectAncestorHeadingsForHeadingAtIndex = (startIndex: number) => {
 			let currentLevel = this.headings[startIndex].level;
